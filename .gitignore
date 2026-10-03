@@ -46,3 +46,9 @@ tmp/
 temp/
 *.log
 *.inspect.ndjson
+
+# Build components and QA reports
+vendor/
+test-results/
+playwright-report/
+.coverage

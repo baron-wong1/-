@@ -1,0 +1,78 @@
+{
+  "name": "invoice-assistant",
+  "version": "0.1.0",
+  "private": true,
+  "description": "离线发票整理、核对与打印助手",
+  "author": "Invoice Assistant Contributors",
+  "license": "AGPL-3.0-or-later",
+  "main": "electron/main.cjs",
+  "scripts": {
+    "dev": "node scripts/dev.mjs",
+    "build": "tsc --noEmit && vite build",
+    "start": "electron .",
+    "test:ui": "playwright test",
+    "package:win": "npm run build && electron-builder --win --x64",
+    "package:mac": "npm run build && electron-builder --mac",
+    "build:core": "python -m PyInstaller core.spec --noconfirm --distpath build/core --workpath build/pyinstaller"
+  },
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "lucide-react": "^0.468.0"
+  },
+  "devDependencies": {
+    "@types/react": "^19.2.0",
+    "@types/react-dom": "^19.2.0",
+    "@types/node": "^22.0.0",
+    "@vitejs/plugin-react": "^5.0.0",
+    "vite": "^7.1.0",
+    "typescript": "^5.9.0",
+    "electron": "^39.0.0",
+    "electron-builder": "^26.0.0",
+    "@playwright/test": "^1.56.0"
+  },
+  "build": {
+    "appId": "org.invoiceassistant.desktop",
+    "productName": "发票整理助手",
+    "directories": {
+      "output": "release"
+    },
+    "files": [
+      "dist/**/*",
+      "electron/**/*",
+      "package.json"
+    ],
+    "extraResources": [
+      {
+        "from": "build/core/invoice-core",
+        "to": "core"
+      },
+      {
+        "from": "vendor/libreoffice",
+        "to": "libreoffice"
+      },
+      {
+        "from": "vendor/licenses",
+        "to": "licenses"
+      },
+      {
+        "from": "docs/使用说明.md",
+        "to": "使用说明.md"
+      }
+    ],
+    "win": {
+      "target": [
+        "zip"
+      ],
+      "artifactName": "InvoiceAssistant-${version}-Windows-x64.${ext}",
+      "signAndEditExecutable": false
+    },
+    "mac": {
+      "target": [
+        "zip"
+      ],
+      "artifactName": "InvoiceAssistant-${version}-macOS-${arch}.${ext}",
+      "category": "public.app-category.finance"
+    }
+  }
+}

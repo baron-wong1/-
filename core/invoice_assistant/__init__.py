@@ -1,0 +1,1 @@
+"""Offline invoice processing core."""

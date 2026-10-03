@@ -1,0 +1,67 @@
+name: Windows offline application
+on:
+  push:
+    branches: [main, 'codex/**']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 45
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - name: Install dependencies
+        run: |
+          python -m pip install -r requirements-dev.txt
+          npm ci
+      - name: Prepare signed offline Word runtime
+        shell: pwsh
+        run: ./scripts/prepare-windows.ps1
+      - name: Gather dependency notices
+        run: python scripts/collect-licenses.py
+      - name: Verify processing core
+        env:
+          INVOICE_RESOURCES: ${{ github.workspace }}/vendor
+        run: python -m pytest -q
+      - name: Build independent Python core
+        run: npm run build:core
+      - name: Smoke test bundled dependencies
+        run: python scripts/smoke-core.py build/core/invoice-core/invoice-core.exe vendor
+      - name: Build desktop ZIP
+        run: npm run package:win
+      - name: Verify packaged desktop interactions
+        env:
+          INVOICE_ELECTRON_E2E: '1'
+          INVOICE_E2E_PACKAGED: ${{ github.workspace }}/release/win-unpacked/发票整理助手.exe
+        run: npm run test:ui -- --project=electron
+      - name: Verify final package contents
+        shell: pwsh
+        run: |
+          $base = 'release/win-unpacked/resources'
+          if (!(Test-Path "$base/core/invoice-core.exe")) { throw 'Core missing' }
+          if (!(Test-Path "$base/libreoffice/program/soffice.exe")) { throw 'LibreOffice missing' }
+          if (!(Test-Path "$base/licenses/PaddleOCR-models-Apache-2.0.txt")) { throw 'Model license missing' }
+          python scripts/smoke-core.py "$base/core/invoice-core.exe" "$base"
+          Get-FileHash release/*.zip -Algorithm SHA256 | Format-List | Out-File release/SHA256.txt
+      - name: Upload Windows candidate
+        uses: actions/upload-artifact@v4
+        with:
+          name: InvoiceAssistant-Windows-x64
+          path: |
+            release/*.zip
+            release/SHA256.txt
+          if-no-files-found: error
+          retention-days: 30
