@@ -13,6 +13,8 @@ jobs:
   build:
     runs-on: windows-2022
     timeout-minutes: 45
+    env:
+      INVOICE_RESOURCES: ${{ github.workspace }}/vendor
     steps:
       - uses: actions/checkout@v5
       - uses: actions/setup-python@v6
@@ -30,8 +32,16 @@ jobs:
       - name: Prepare signed offline Word runtime
         shell: pwsh
         run: ./scripts/prepare-windows.ps1
-      - name: Gather dependency notices
-        run: python scripts/collect-licenses.py
+      - name: Measure complete Office runtime
+        run: python scripts/package-footprint.py --root vendor/libreoffice --label office_before --report build/package-footprint.json
+      - name: Record Word conversion baseline
+        run: python scripts/verify-word-trim.py baseline "${{ runner.temp }}/invoice-word-layout"
+      - name: Trim interactive Office resources
+        run: python scripts/trim-word-runtime.py vendor/libreoffice build/word-trim.json
+      - name: Compare Word rendering after trimming
+        run: python scripts/verify-word-trim.py verify "${{ runner.temp }}/invoice-word-layout"
+      - name: Measure trimmed Office runtime
+        run: python scripts/package-footprint.py --root vendor/libreoffice --label office_after --report build/package-footprint.json
       - name: Verify processing core
         env:
           INVOICE_RESOURCES: ${{ github.workspace }}/vendor
@@ -41,6 +51,10 @@ jobs:
       - name: Copy app-local VC runtime into core
         shell: pwsh
         run: Copy-Item vendor/vc-runtime/*.dll build/core/invoice-core/_internal
+      - name: Measure packaged core
+        run: python scripts/package-footprint.py --root build/core/invoice-core --label core --report build/package-footprint.json
+      - name: Gather dependency notices
+        run: python scripts/collect-licenses.py
       - name: Smoke test bundled dependencies
         run: python scripts/smoke-core.py build/core/invoice-core/invoice-core.exe vendor
       - name: Build desktop ZIP
@@ -58,6 +72,11 @@ jobs:
           if (!(Test-Path "$base/libreoffice/program/soffice.exe")) { throw 'LibreOffice missing' }
           if (!(Test-Path "$base/licenses/PaddleOCR-models-Apache-2.0.txt")) { throw 'Model license missing' }
           python scripts/smoke-core.py "$base/core/invoice-core.exe" "$base"
+          if ($LASTEXITCODE -ne 0) { throw 'Final core smoke test failed' }
+          $zip = (Get-ChildItem release/*.zip | Select-Object -First 1).FullName
+          python scripts/package-footprint.py --zip "$zip" --label windows_zip --report build/package-footprint.json
+          if ($LASTEXITCODE -ne 0) { throw 'Package inventory failed' }
+          Copy-Item build/package-footprint.json,build/word-trim.json release
           Get-FileHash release/*.zip -Algorithm SHA256 | Format-List | Out-File release/SHA256.txt
       - name: Upload Windows candidate
         uses: actions/upload-artifact@v4
@@ -66,6 +85,8 @@ jobs:
           path: |
             release/*.zip
             release/SHA256.txt
+            release/package-footprint.json
+            release/word-trim.json
           if-no-files-found: error
           retention-days: 30
           compression-level: 0

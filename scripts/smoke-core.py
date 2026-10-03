@@ -33,9 +33,13 @@ with tempfile.TemporaryDirectory(prefix='invoice-smoke-') as directory:
     content='电子发票\n发票号码:00123456789012345678\n开票日期:2026年09月03日\n住宿服务\n价税合计(小写):￥123.45'
     page.insert_text((20,35),content,fontname='china-s',fontsize=15,lineheight=1.6)
     pix=page.get_pixmap(matrix=fitz.Matrix(2,2));scan=root/'scan.png';pix.save(scan)
+    from PIL import Image
+    jpeg=root/'scan.jpg'
+    with Image.open(scan) as image:
+        image.save(jpeg,quality=95)
     doc.save(pdf);doc.close()
-    rows=call({'op':'import','paths':[str(pdf),str(scan)],'cache':str(root/'cache')})['records']
-    assert len(rows)==2 and all(r['number']=='00123456789012345678' and r['amount']=='123.45' for r in rows), rows
+    rows=call({'op':'import','paths':[str(pdf),str(scan),str(jpeg)],'cache':str(root/'cache')})['records']
+    assert len(rows)==3 and all(r['number']=='00123456789012345678' and r['amount']=='123.45' for r in rows), rows
     row={**rows[0],'reviewed':True}
     result=call({'op':'export','records':[row],'person':'合成测试','month':'2026-09','destination':str(root/'out')})
     assert result['count']==1 and result['amount']=='123.45'

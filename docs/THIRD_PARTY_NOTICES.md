@@ -12,13 +12,12 @@
 | RapidOCR ONNX Runtime | 离线 OCR | Apache-2.0 |
 | PaddleOCR 预训练模型（RapidOCR 随包 ONNX） | 中文检测、方向和识别 | Apache-2.0 |
 | ONNX Runtime | 模型推理 | MIT |
-| OpenCV | 图像预处理 | Apache-2.0 及第三方许可 |
+| OpenCV headless 5.0.0.93 | 图像预处理，发行版使用不带 GUI 的独立 wheel | Apache-2.0 及第三方许可 |
 | Pillow | 图片读取和方向校正 | HPND |
 | openpyxl | Excel 输出 | MIT |
 | LibreOffice 26.8.0.3 | Word 转换、字体和资源 | MPL-2.0 / LGPL 等，完整许可随 LibreOffice 目录保留 |
 | Noto Sans CJK SC 2.004 | 非中文 Windows 上的 Word 中文字体回退 | SIL Open Font License 1.1，许可随 LibreOffice 目录保留 |
-| Microsoft Visual C++ CRT | 随包的应用本地运行库（从 Windows 构建机合法 redist 文件取得） | Noto Sans CJK SC 2.004 | 非中文 Windows 上的 Word 中文字体回退 | SIL Open Font License 1.1，许可随 LibreOffice 目录保留 |
-| Microsoft Visual Studio REDIST 条款 |
+| Microsoft Visual C++ CRT | 随包的应用本地运行库（从 Windows 构建机合法 redist 文件取得） | Microsoft Visual Studio REDIST 条款 |
 | PyInstaller | 独立核心打包 | GPL 及 bootloader exception，例外允许按应用自身许可分发 |
 
 `python scripts/collect-licenses.py` 收集运行环境中的 notices，并补齐部分 wheel 未携带的上游许可。发行包中查看 `resources/licenses`、Electron 自带 `LICENSES.chromium.html` 和 LibreOffice 的许可文件。OCR 不在运行时下载模型。

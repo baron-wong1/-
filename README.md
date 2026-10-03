@@ -12,6 +12,8 @@ Windows 10/11 x64 候选包由 [Windows 构建任务](https://github.com/baron-w
 
 [使用说明](docs/使用说明.md) · [开发、打包与验收](docs/开发与验收.md) · [设计说明](docs/superpowers/specs/2026-10-03-invoice-assistant-design.md)
 
+0.1.1 对离线发行包进行依赖裁剪，保留现有功能；Office 裁剪前后须通过中文、表格、图片及分页渲染对照。构建产物附带组件体积清单，详见 [包体积优化](docs/包体积优化.md)。
+
 ## 工作流程
 
 选择或拖入文件/文件夹 → 填写报销人和月份 → 核对待确认项 → 生成打印件和统计表。

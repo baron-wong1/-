@@ -1,6 +1,6 @@
 {
   "name": "invoice-assistant",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "private": true,
   "description": "离线发票整理、核对与打印助手",
   "author": "Invoice Assistant Contributors",
@@ -13,7 +13,7 @@
     "test:ui": "playwright test",
     "package:win": "npm run build && electron-builder --win --x64",
     "package:mac": "npm run build && electron-builder --mac",
-    "build:core": "python -m PyInstaller core.spec --noconfirm --distpath build/core --workpath build/pyinstaller"
+    "build:core": "python scripts/prepare-core.py && python -m PyInstaller core.spec --noconfirm --distpath build/core --workpath build/pyinstaller"
   },
   "dependencies": {
     "lucide-react": "^0.468.0",
@@ -35,13 +35,18 @@
   "build": {
     "appId": "org.invoiceassistant.desktop",
     "productName": "发票整理助手",
+    "electronLanguages": [
+      "en-US",
+      "zh-CN"
+    ],
     "directories": {
       "output": "release"
     },
     "files": [
       "dist/**/*",
       "electron/**/*",
-      "package.json"
+      "package.json",
+      "!node_modules{,/**/*}"
     ],
     "extraResources": [
       {
