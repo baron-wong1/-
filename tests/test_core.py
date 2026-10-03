@@ -80,7 +80,10 @@ def test_encrypted_pdf_visible_error(tmp_path):
 def test_recursive_discovery_excludes_outputs_and_symlinks(pdf_factory,tmp_path):
     good=pdf_factory()
     output=tmp_path/'整理结果';output.mkdir();shutil.copy(good,output/'copy.pdf')
-    (tmp_path/'loop').symlink_to(tmp_path,target_is_directory=True)
+    try:
+        (tmp_path/'loop').symlink_to(tmp_path,target_is_directory=True)
+    except OSError:
+        pass  # Some Windows runners disallow creating symlinks.
     files,errors=discover([tmp_path],[])
     assert files==[good] and not errors
 
@@ -228,3 +231,21 @@ def test_worker_protocol(pdf_factory,tmp_path):
     events=[json.loads(line) for line in proc.stdout.splitlines()]
     assert events[0]['event']=='started' and events[-1]['event']=='result'
     assert events[-1]['result']['records'][0]['amount']=='123.45'
+
+
+def test_fullwidth_ocr_decimals_and_invalid_precision():
+    parsed=parse('发票号码：００１２３４５６７８９０１２３４５６７８\n开票日期：２０２６年９月３日\n价税合计（小写）：￥１２３．４５')
+    assert parsed['amount']=='123.45' and parsed['number']=='00123456789012345678'
+    assert parse('价税合计(小写):￥123.456')['amount'] is None
+
+
+def test_multiple_invoice_page_cannot_be_confirmed_as_single_whole_page(pdf_factory,tmp_path):
+    row=imported([pdf_factory()],tmp_path)[0]
+    row.update(requires_split=True,reviewed=True)
+    assert reconcile([row])[0]['status']=='pending'
+
+
+def test_category_conflict_is_not_silently_deduplicated(pdf_factory,tmp_path):
+    row=imported([pdf_factory()],tmp_path)[0]
+    other={**row,'id':'second','category':'车票'}
+    assert all(r['status']=='conflict' for r in reconcile([row,other]))

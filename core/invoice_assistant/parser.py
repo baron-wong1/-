@@ -5,7 +5,7 @@ from .models import CATEGORIES, money
 
 NUMBER = re.compile(r'(?:发\s*票\s*(?:号\s*码|号)|票据号码)\s*[:：]?\s*((?:\d[ \t]*){8,30})(?!\d)')
 DATE = re.compile(r'(?<!\d)(20\d{2})\s*[年/.-]\s*(\d{1,2})\s*[月/.-]\s*(\d{1,2})\s*日?')
-AMOUNT = r'(\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)'
+AMOUNT = r'(\d{1,3}(?:,\d{3})+(?:\.\d{1,2})?|\d+(?:\.\d{1,2})?)(?![\d.,])'
 
 
 def parse(text, folder=''):

@@ -14,12 +14,12 @@ jobs:
     runs-on: windows-2022
     timeout-minutes: 45
     steps:
-      - uses: actions/checkout@v4
-      - uses: actions/setup-python@v5
+      - uses: actions/checkout@v5
+      - uses: actions/setup-python@v6
         with:
           python-version: '3.12'
           cache: pip
-      - uses: actions/setup-node@v4
+      - uses: actions/setup-node@v5
         with:
           node-version: '22'
           cache: npm
@@ -38,6 +38,9 @@ jobs:
         run: python -m pytest -q
       - name: Build independent Python core
         run: npm run build:core
+      - name: Copy app-local VC runtime into core
+        shell: pwsh
+        run: Copy-Item vendor/vc-runtime/*.dll build/core/invoice-core/_internal
       - name: Smoke test bundled dependencies
         run: python scripts/smoke-core.py build/core/invoice-core/invoice-core.exe vendor
       - name: Build desktop ZIP
@@ -65,3 +68,4 @@ jobs:
             release/SHA256.txt
           if-no-files-found: error
           retention-days: 30
+          compression-level: 0

@@ -16,20 +16,21 @@
     "build:core": "python -m PyInstaller core.spec --noconfirm --distpath build/core --workpath build/pyinstaller"
   },
   "dependencies": {
+    "lucide-react": "^0.468.0",
     "react": "^19.2.0",
-    "react-dom": "^19.2.0",
-    "lucide-react": "^0.468.0"
+    "react-dom": "^19.2.0"
   },
   "devDependencies": {
+    "@playwright/test": "^1.56.0",
+    "@types/node": "^22.0.0",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
-    "@types/node": "^22.0.0",
     "@vitejs/plugin-react": "^5.0.0",
-    "vite": "^7.1.0",
+    "electron": "^44.5.1",
+    "electron-builder": "^26.15.3",
+    "prettier": "^3.6.2",
     "typescript": "^5.9.0",
-    "electron": "^39.0.0",
-    "electron-builder": "^26.0.0",
-    "@playwright/test": "^1.56.0"
+    "vite": "^7.1.0"
   },
   "build": {
     "appId": "org.invoiceassistant.desktop",

@@ -47,3 +47,7 @@ for name in ('electron', 'react', 'react-dom', 'lucide-react'):
     for file in license_files:
         shutil.copyfile(file, folder / file.name)
 (output / 'python-dependencies.json').write_text(json.dumps(manifest, ensure_ascii=False, indent=2), encoding='utf-8')
+
+vc_notice = root / 'vendor/vc-runtime/REDIST.txt'
+if vc_notice.exists():
+    shutil.copyfile(vc_notice, output / 'Microsoft-VC-REDIST.txt')

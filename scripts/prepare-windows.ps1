@@ -4,7 +4,11 @@ $installer = Join-Path $env:RUNNER_TEMP 'LibreOffice.msi'
 $extract = Join-Path $env:RUNNER_TEMP 'invoice-libreoffice'
 $uri = "https://downloadarchive.documentfoundation.org/libreoffice/old/$version/win/x86_64/LibreOffice_${version}_Win_x86-64.msi"
 Write-Host "Download official LibreOffice $version"
-Invoke-WebRequest -Uri $uri -OutFile $installer
+& curl.exe --fail --location --retry 3 --retry-all-errors --connect-timeout 25 --max-time 300 --output $installer $uri
+if ($LASTEXITCODE -ne 0) { throw 'LibreOffice download failed' }
+# Pinned upstream WinGet manifest provides the independent SHA-256 for this release.
+$expected = 'B2B23D91BDA5AD6E97B38008B082060A55D2A3C7C269B2C0E78DACA865133D48'
+if ((Get-FileHash $installer -Algorithm SHA256).Hash -ne $expected) { throw 'LibreOffice SHA-256 mismatch' }
 $signature = Get-AuthenticodeSignature $installer
 if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'The Document Foundation') {
     throw "LibreOffice installer signature validation failed: $($signature.Status)"
@@ -17,3 +21,16 @@ New-Item -ItemType Directory -Force vendor | Out-Null
 if (Test-Path vendor/libreoffice) { Remove-Item vendor/libreoffice -Recurse -Force }
 Copy-Item $exe.Directory.Parent.FullName vendor/libreoffice -Recurse
 Write-Host 'LibreOffice prepared with share files, fonts, and licenses.'
+
+# App-local VC runtime: clean Windows machines need no system-wide redist install.
+$vswhere = Join-Path ${env:ProgramFiles(x86)} 'Microsoft Visual Studio/Installer/vswhere.exe'
+$visualStudio = & $vswhere -latest -products '*' -requires Microsoft.VisualStudio.Component.VC.Tools.x86.x64 -property installationPath
+if (-not $visualStudio) { throw 'Visual Studio C++ redist files unavailable on builder' }
+$crt = Get-ChildItem (Join-Path $visualStudio 'VC/Redist/MSVC') -Recurse -Directory -Filter Microsoft.VC143.CRT |
+    Where-Object { $_.Parent.Name -eq 'x64' } | Sort-Object FullName -Descending | Select-Object -First 1
+if (-not $crt) { throw 'VC143 x64 CRT unavailable' }
+New-Item -ItemType Directory -Force vendor/vc-runtime | Out-Null
+Copy-Item (Join-Path $crt.FullName '*.dll') vendor/vc-runtime
+Copy-Item (Join-Path $crt.FullName '*.dll') vendor/libreoffice/program
+$redistNotice = Get-ChildItem (Join-Path $visualStudio 'VC') -Recurse -File -Filter 'REDIST.txt' | Select-Object -First 1
+if ($redistNotice) { Copy-Item $redistNotice.FullName vendor/vc-runtime/REDIST.txt }
