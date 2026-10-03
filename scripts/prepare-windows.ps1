@@ -1,13 +1,17 @@
 $ErrorActionPreference = 'Stop'
-$version = '25.8.4.2'
+$version = '26.8.0'
 $installer = Join-Path $env:RUNNER_TEMP 'LibreOffice.msi'
 $extract = Join-Path $env:RUNNER_TEMP 'invoice-libreoffice'
-$uri = "https://downloadarchive.documentfoundation.org/libreoffice/old/$version/win/x86_64/LibreOffice_${version}_Win_x86-64.msi"
+$uri = "https://download.documentfoundation.org/libreoffice/stable/$version/win/x86_64/LibreOffice_${version}_Win_x86-64.msi"
 Write-Host "Download official LibreOffice $version"
-python scripts/download-component.py $uri $installer
-if ($LASTEXITCODE -ne 0) { throw 'Official LibreOffice ranged download failed' }
+curl.exe --fail --location --retry 3 --retry-all-errors --max-time 300 --speed-time 30 --speed-limit 1024 --output $installer $uri
+if ($LASTEXITCODE -ne 0) {
+    Write-Host 'Retry official runtime with bounded parallel ranges'
+    python scripts/download-component.py $uri $installer
+    if ($LASTEXITCODE -ne 0) { throw 'Official LibreOffice download failed' }
+}
 # Pinned upstream WinGet manifest provides the independent SHA-256 for this release.
-$expected = 'B2B23D91BDA5AD6E97B38008B082060A55D2A3C7C269B2C0E78DACA865133D48'
+$expected = '4AA6C6E1895F4055104EFFCB556BD3362D20C6AD707C149543304F395EF9DB95'
 if ((Get-FileHash $installer -Algorithm SHA256).Hash -ne $expected) { throw 'LibreOffice SHA-256 mismatch' }
 $signature = Get-AuthenticodeSignature $installer
 if ($signature.Status -ne 'Valid' -or $signature.SignerCertificate.Subject -notmatch 'The Document Foundation') {
