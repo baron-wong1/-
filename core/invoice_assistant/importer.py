@@ -89,7 +89,12 @@ def convert_word(path, cache, file_hash):
             try:
                 stdout, stderr = proc.communicate(timeout=120)
             except subprocess.TimeoutExpired:
-                proc.kill()
+                if os.name == 'nt':
+                    subprocess.run(['taskkill', '/PID', str(proc.pid), '/T', '/F'],
+                                   stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                                   creationflags=subprocess.CREATE_NO_WINDOW, timeout=15)
+                else:
+                    proc.kill()
                 proc.communicate()
                 raise RuntimeError('Word 转换超时，请检查原文件')
             converted = work / 'document.pdf'
