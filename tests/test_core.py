@@ -249,3 +249,20 @@ def test_category_conflict_is_not_silently_deduplicated(pdf_factory,tmp_path):
     row=imported([pdf_factory()],tmp_path)[0]
     other={**row,'id':'second','category':'车票'}
     assert all(r['status']=='conflict' for r in reconcile([row,other]))
+
+
+def test_rotated_pdf_normalized_without_changing_original(pdf_factory,tmp_path):
+    path=pdf_factory()
+    with fitz.open(path) as doc:
+        doc[0].set_rotation(90)
+        doc.saveIncr()
+        original_size=doc[0].rect.width,doc[0].rect.height
+    before=digest(path)
+    rows=reviewed(imported([path],tmp_path))
+    assert not rows[0].get('error')
+    with fitz.open(rows[0]['render_path']) as normalized:
+        assert normalized[0].rotation==0
+        assert (normalized[0].rect.width,normalized[0].rect.height)==original_size
+    assert rows[0]['number']=='00123456789012345678'
+    export_files(request(rows,tmp_path),lambda *a,**k:None)
+    assert digest(path)==before

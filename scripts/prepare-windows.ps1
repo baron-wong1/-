@@ -4,8 +4,12 @@ $installer = Join-Path $env:RUNNER_TEMP 'LibreOffice.msi'
 $extract = Join-Path $env:RUNNER_TEMP 'invoice-libreoffice'
 $uri = "https://downloadarchive.documentfoundation.org/libreoffice/old/$version/win/x86_64/LibreOffice_${version}_Win_x86-64.msi"
 Write-Host "Download official LibreOffice $version"
-& curl.exe --fail --location --retry 3 --retry-all-errors --connect-timeout 25 --max-time 300 --output $installer $uri
-if ($LASTEXITCODE -ne 0) { throw 'LibreOffice download failed' }
+& curl.exe -4 --http1.1 --fail --location --retry 2 --retry-all-errors --connect-timeout 15 --max-time 180 --output $installer $uri
+if ($LASTEXITCODE -ne 0) {
+    Write-Host 'Retry official download with Python/OpenSSL'
+    python scripts/download-component.py $uri $installer
+    if ($LASTEXITCODE -ne 0) { throw 'LibreOffice download failed' }
+}
 # Pinned upstream WinGet manifest provides the independent SHA-256 for this release.
 $expected = 'B2B23D91BDA5AD6E97B38008B082060A55D2A3C7C269B2C0E78DACA865133D48'
 if ((Get-FileHash $installer -Algorithm SHA256).Hash -ne $expected) { throw 'LibreOffice SHA-256 mismatch' }

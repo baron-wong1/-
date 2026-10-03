@@ -70,6 +70,10 @@ test("desktop IPC imports, previews, exports and restores actual files", async (
     await page.getByRole("button", { name: "生成打印件和统计表" }).click();
     await expect(page.getByText("文件已生成", { exact: true })).toBeVisible();
     await expect(page.getByText(/1 张发票 · ¥ 123.45/)).toBeVisible();
+    await page.screenshot({
+      path: path.join(os.tmpdir(), "invoice-desktop-verified.png"),
+      fullPage: true,
+    });
     await page.waitForTimeout(450);
     await desktop.close();
     desktop = await launch();

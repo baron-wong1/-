@@ -125,6 +125,19 @@ def image_pdf(path, cache, file_hash):
     return target
 
 
+def normalize_pdf_rotation(path, cache, file_hash):
+    target = cache / (file_hash + '-normalized.pdf')
+    with fitz.open(path) as doc:
+        if doc.is_encrypted or not any(page.rotation for page in doc):
+            return path
+        if not target.exists():
+            for page in doc:
+                if page.rotation:
+                    page.remove_rotation()
+            doc.save(target, garbage=4, deflate=True)
+    return target
+
+
 def discover(paths, excluded):
     files, errors = [], []
     seen = set()
@@ -135,7 +148,7 @@ def discover(paths, excluded):
             continue
         if path.is_dir():
             found = False
-            for root, dirs, names in os.walk(path, followlinks=False):
+            for root, dirs, names in os.walk(path, followlinks=False, onerror=lambda exc: errors.append((Path(exc.filename or path), '无法读取目录：' + str(exc)))):
                 dirs[:] = sorted(d for d in dirs if d not in EXCLUDED and not d.startswith(('发票整理_', '.invoice-export-'))
                                  and not Path(root, d).is_symlink()
                                  and not any(inside(Path(root, d), directory) for directory in excluded))
@@ -189,6 +202,7 @@ def import_files(request, emit):
                 render_path = convert_word(path, cache, file_hash)
             elif path.suffix.lower() != '.pdf':
                 render_path = image_pdf(path, cache, file_hash)
+            render_path = normalize_pdf_rotation(render_path, cache, file_hash)
             render_hash = digest(render_path)
             with fitz.open(render_path) as doc:
                 if doc.is_encrypted:
