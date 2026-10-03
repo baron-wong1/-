@@ -1,6 +1,7 @@
 """Copy installed dependency license notices to the distribution, fail if missing."""
 import json
 import shutil
+import sys
 import urllib.request
 from importlib.metadata import distributions
 from pathlib import Path
@@ -26,6 +27,7 @@ for dist in distributions():
     manifest.append({'name':name,'version':dist.version,'license':dist.metadata.get('License')})
 # Some wheels omit their license files; include upstream copies from pinned versions.
 upstream = {
+    'Python-PSF.txt': f'https://raw.githubusercontent.com/python/cpython/v{sys.version_info.major}.{sys.version_info.minor}.{sys.version_info.micro}/LICENSE',
     'PyMuPDF-AGPL-3.0.txt': 'https://raw.githubusercontent.com/pymupdf/PyMuPDF/1.26.6/COPYING',
     'RapidOCR-Apache-2.0.txt': 'https://raw.githubusercontent.com/RapidAI/RapidOCR/v1.4.4/LICENSE',
     'PaddleOCR-models-Apache-2.0.txt': 'https://raw.githubusercontent.com/PaddlePaddle/PaddleOCR/v2.7.3/LICENSE',
