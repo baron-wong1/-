@@ -48,4 +48,4 @@ Invoke-WebRequest -Uri $fontUri -OutFile $font
 if ((Get-FileHash $font -Algorithm SHA256).Hash -ne '2C76254F6FC379FDDFCE0A7E84FB5385BB135D3E399294F6EEB6680D0365B74B') {
     throw 'Chinese font SHA-256 mismatch'
 }
-Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/notofonts/noto-cjk/Sans2.004/Sans/LICENSE' -OutFile 'vendor/libreoffice/Noto-OFL.txt'
+Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/notofonts/noto-cjk/Sans2.004/LICENSE' -OutFile 'vendor/libreoffice/Noto-OFL.txt'
