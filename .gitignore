@@ -1,0 +1,48 @@
+# Operating system
+.DS_Store
+Thumbs.db
+Desktop.ini
+
+# Local documents and private review material
+local-only/
+private/
+receipts/
+invoices/
+inputs/
+outputs/
+output/
+整理结果/
+*.pdf
+*.doc
+*.docx
+*.xlsx
+*.xls
+*.jpg
+*.jpeg
+*.png
+!tests/fixtures/synthetic/**
+!public/assets/**
+
+# Local settings and credentials
+.env
+.env.*
+!.env.example
+*.pem
+*.key
+settings.local.json
+
+# Application/generated files
+node_modules/
+dist/
+build/
+release/
+releases/
+.venv/
+venv/
+__pycache__/
+*.py[cod]
+.pytest_cache/
+tmp/
+temp/
+*.log
+*.inspect.ndjson
