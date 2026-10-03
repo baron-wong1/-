@@ -38,3 +38,14 @@ Copy-Item (Join-Path $crt.FullName '*.dll') vendor/vc-runtime
 Copy-Item (Join-Path $crt.FullName '*.dll') vendor/libreoffice/program
 $redistNotice = Get-ChildItem (Join-Path $visualStudio 'VC') -Recurse -File -Filter 'REDIST.txt' | Select-Object -First 1
 if ($redistNotice) { Copy-Item $redistNotice.FullName vendor/vc-runtime/REDIST.txt }
+
+# Chinese fallback font for Word documents on English-only Windows systems.
+$fontDirectory = 'vendor/libreoffice/share/fonts/truetype'
+New-Item -ItemType Directory -Force $fontDirectory | Out-Null
+$font = Join-Path $fontDirectory 'NotoSansCJKsc-Regular.otf'
+$fontUri = 'https://raw.githubusercontent.com/notofonts/noto-cjk/Sans2.004/Sans/OTF/SimplifiedChinese/NotoSansCJKsc-Regular.otf'
+Invoke-WebRequest -Uri $fontUri -OutFile $font
+if ((Get-FileHash $font -Algorithm SHA256).Hash -ne '2C76254F6FC379FDDFCE0A7E84FB5385BB135D3E399294F6EEB6680D0365B74B') {
+    throw 'Chinese font SHA-256 mismatch'
+}
+Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/notofonts/noto-cjk/Sans2.004/Sans/LICENSE' -OutFile 'vendor/libreoffice/Noto-OFL.txt'

@@ -211,7 +211,7 @@ def import_files(request, emit):
                     raise RuntimeError('文件没有页面')
                 for page_index, page in enumerate(doc):
                     try:
-                        text = page.get_text(sort=True)
+                        text = page.get_text(sort=False)
                         parsed = parse(text, str(path.parent))
                         method = 'text'
                         if not parsed.get('requires_split') and (len(text.strip()) < 20 or not parsed['number'] or not parsed['amount'] or not parsed['date']):
@@ -282,7 +282,7 @@ def recognize(request):
     with fitz.open(row['render_path']) as doc:
         page = doc[row['page_start'] - 1]
         clip = clip_rect(page, row.get('crop'))
-        text = page.get_text(clip=clip, sort=True)
+        text = page.get_text(clip=clip, sort=False)
         result = parse(text, str(Path(row['source']).parent))
         if len(text.strip()) < 20 or not all(result[k] for k in ('number', 'date', 'amount')):
             text, _ = ocr_text(page, clip)
