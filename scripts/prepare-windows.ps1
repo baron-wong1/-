@@ -4,12 +4,17 @@ $installer = Join-Path $env:RUNNER_TEMP 'LibreOffice.msi'
 $extract = Join-Path $env:RUNNER_TEMP 'invoice-libreoffice'
 $uri = "https://download.documentfoundation.org/libreoffice/stable/$version/win/x86_64/LibreOffice_${version}_Win_x86-64.msi"
 Write-Host "Download official LibreOffice $version"
-curl.exe --fail --location --retry 3 --retry-all-errors --max-time 300 --speed-time 30 --speed-limit 1024 --output $installer $uri
-if ($LASTEXITCODE -ne 0) {
-    Write-Host 'Retry official runtime with bounded parallel ranges'
-    python scripts/download-component.py $uri $installer
-    if ($LASTEXITCODE -ne 0) { throw 'Official LibreOffice download failed' }
+$relative = "libreoffice/stable/$version/win/x86_64/LibreOffice_${version}_Win_x86-64.msi"
+# Established TDF mirrors avoid a slow automatic redirect; every result still needs
+# the independent upstream hash and the publisher's Authenticode signature below.
+$mirrors = @("https://ftp.osuosl.org/pub/tdf/$relative", "https://mirror.init7.net/tdf/$relative", $uri)
+$downloaded = $false
+foreach ($mirror in $mirrors) {
+    Write-Host "Try runtime mirror: $mirror"
+    curl.exe --fail --location --connect-timeout 15 --max-time 600 --speed-time 20 --speed-limit 100000 --output $installer --write-out "`nEffective URL: %{url_effective}`n" $mirror
+    if ($LASTEXITCODE -eq 0) { $downloaded = $true; break }
 }
+if (-not $downloaded) { throw 'Official LibreOffice mirrors unavailable or too slow; retry the build later' }
 # Pinned upstream WinGet manifest provides the independent SHA-256 for this release.
 $expected = '4AA6C6E1895F4055104EFFCB556BD3362D20C6AD707C149543304F395EF9DB95'
 if ((Get-FileHash $installer -Algorithm SHA256).Hash -ne $expected) { throw 'LibreOffice SHA-256 mismatch' }
