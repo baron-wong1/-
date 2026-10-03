@@ -266,3 +266,16 @@ def test_rotated_pdf_normalized_without_changing_original(pdf_factory,tmp_path):
     assert rows[0]['number']=='00123456789012345678'
     export_files(request(rows,tmp_path),lambda *a,**k:None)
     assert digest(path)==before
+
+
+def test_ocr_multiple_numbers_on_partial_text_page_requires_split(pdf_factory,tmp_path,monkeypatch):
+    # A PDF text layer may contain dates/amounts while its invoice numbers remain scanned.
+    path=pdf_factory(text='电子发票\n开票日期:2026年09月03日\n住宿服务\n价税合计(小写):￥123.45')
+    monkeypatch.setattr('invoice_assistant.importer.ocr_text', lambda page, clip=None: (
+        '发票号码:00123456789012345678\n开票日期:2026-09-03\n票价:123.45\n'
+        '发票号码:00123456789012345679\n票价:50.00', 0.99))
+    row=imported([path],tmp_path)[0]
+    assert row['requires_split'] and row['number']==''
+    assert row['amount'] is None and row['date'] is None
+    row.update(number='00123456789012345678',amount='123.45',date='2026-09-03',reviewed=True)
+    assert reconcile([row])[0]['status']=='pending'

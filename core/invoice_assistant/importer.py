@@ -229,6 +229,10 @@ def import_files(request, emit):
                                         parsed[field] = ocr_parsed[field]
                                 if len(text.strip()) < 20:
                                     parsed = ocr_parsed
+                                if ocr_parsed['requires_split']:
+                                    parsed['requires_split'] = True
+                                    parsed['number'] = ''
+                                    parsed['date'] = parsed['amount'] = None
                                 parsed['warnings'] = list(dict.fromkeys(parsed['warnings'] + ocr_parsed['warnings']))
                                 method = 'ocr' if len(text.strip()) < 20 else 'text+ocr'
                                 parsed['warnings'].append('包含 OCR 识别结果，请对照原件核对数字和日期')
