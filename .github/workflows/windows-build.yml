@@ -1,0 +1,76 @@
+name: Windows lightweight application
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: read
+concurrency:
+  group: windows-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  build:
+    runs-on: windows-2022
+    timeout-minutes: 15
+    env:
+      PYTHONUTF8: '1'
+      DOTNET_CLI_TELEMETRY_OPTOUT: '1'
+    steps:
+      - uses: actions/checkout@v5
+      - uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '8.0.x'
+      - uses: actions/setup-python@v6
+        with:
+          python-version: '3.12'
+      - name: Restore locked small libraries
+        run: dotnet restore lightweight/InvoiceAssistant.csproj --locked-mode
+      - name: Build native application using system .NET Framework
+        run: dotnet build lightweight/InvoiceAssistant.csproj --no-restore -c Release -o build/lightweight
+      - name: Prepare synthetic verification material
+        shell: pwsh
+        run: |
+          python -m pip install PyMuPDF==1.26.6 Pillow==12.3.0 openpyxl==3.1.5
+          python scripts/lightweight-fixtures.py "$env:RUNNER_TEMP/invoice-native-qa"
+      - name: Package lightweight ZIP and dependency notices
+        run: python scripts/package-lightweight.py
+      - name: Verify packaged desktop and system APIs
+        shell: pwsh
+        run: |
+          $qa = "$env:RUNNER_TEMP/invoice-native-qa"
+          $app = (Resolve-Path 'release/lightweight/发票整理助手.exe').Path
+          $process = Start-Process -FilePath $app -ArgumentList @('--self-test', ('"' + $qa + '"')) -PassThru
+          if (!$process.WaitForExit(180000)) { Stop-Process -Id $process.Id -Force; throw 'Native self-test timeout' }
+          Get-Content "$qa/self-test.txt"
+          if ($process.ExitCode -ne 0) { throw "Native self-test failed: $($process.ExitCode)" }
+          python scripts/verify-lightweight-output.py "$qa"
+          if ($LASTEXITCODE -ne 0) { throw 'Independent PDF/Excel verification failed' }
+          New-Item -ItemType Directory -Force release/verification | Out-Null
+          Copy-Item "$qa/self-test.txt","$qa/desktop.png","$qa/review.png","$qa/preview.png","$qa/rotated-print.png","$qa/split-print.png","$qa/printed-page-1.png","$qa/printed-page-2.png" release/verification
+      - name: Upload small Windows candidate
+        uses: actions/upload-artifact@v4
+        if: success()
+        with:
+          name: InvoiceAssistant-Light-Windows-x64
+          path: |
+            release/*.zip
+            release/SHA256.txt
+            release/footprint.json
+            release/verification
+          if-no-files-found: error
+          retention-days: 30
+          compression-level: 0
+      - name: Upload synthetic diagnostic files
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: InvoiceAssistant-Light-Verification
+          path: |
+            ${{ runner.temp }}/invoice-native-qa/*.txt
+            ${{ runner.temp }}/invoice-native-qa/*.png
+            ${{ runner.temp }}/invoice-native-qa/exports
+            ${{ runner.temp }}/invoice-native-qa/rotated-exports
+            ${{ runner.temp }}/invoice-native-qa/split-exports
+          if-no-files-found: ignore
+          retention-days: 7

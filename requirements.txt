@@ -1,0 +1,4 @@
+PyMuPDF==1.26.6
+openpyxl==3.1.5
+Pillow==12.3.0
+rapidocr-onnxruntime==1.4.4
