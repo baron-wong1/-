@@ -28,6 +28,16 @@ def trim(root):
                       for p in (root / 'program').glob('python-core-*') if p.is_dir())
     candidates.extend((p, 'Alternative interactive icon theme; retain default Colibre theme')
                       for p in (root / 'share/config').glob('images_*.zip') if 'colibre' not in p.name.lower())
+    candidates.extend((p, 'MSI administrative-install metadata; not used by portable conversion')
+                      for p in root.glob('*.msi'))
+    # Writer's PDF export does not perform interactive proofing. Keep extension
+    # registrations, notices and hyphenation dictionaries because they affect wrapping.
+    for dictionary in (root / 'share/extensions').glob('dict-*'):
+        for path in dictionary.rglob('*'):
+            name=path.name.lower()
+            if path.is_file() and ((path.suffix.lower() in ('.aff', '.dic') and not name.startswith('hyph'))
+                                   or (name.startswith('th_') and path.suffix.lower() in ('.dat', '.idx'))):
+                candidates.append((path, 'Interactive spelling/thesaurus data; hyphenation dictionaries retained'))
     resources = root / 'program/resource'
     if resources.exists():
         candidates.extend((p, 'Unused Office UI translation') for p in resources.iterdir()

@@ -1,9 +1,13 @@
 """Produce a reproducible size inventory without including any document contents."""
 import argparse
 import json
+import sys
 import zipfile
 from collections import defaultdict
 from pathlib import Path
+
+if hasattr(sys.stdout, 'reconfigure'):
+    sys.stdout.reconfigure(encoding='utf-8')
 
 parser = argparse.ArgumentParser()
 parser.add_argument('--root')

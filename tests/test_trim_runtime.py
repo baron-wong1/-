@@ -18,9 +18,12 @@ def test_trim_preserves_filters_fonts_licenses_and_default_resources(tmp_path):
     kept=['program/soffice.exe','program/swlo.dll','program/python3.dll','LICENSE',
           'share/fonts/truetype/NotoSansCJKsc-Regular.otf','share/registry/writer.xcd',
           'share/config/images_colibre.zip','program/resource/en-US/messages.mo',
-          'program/resource/zh-CN/messages.mo','share/extensions/dict-en/hyph_en_US.dic']
+          'program/resource/zh-CN/messages.mo','share/extensions/dict-en/hyph_en_US.dic',
+          'share/extensions/dict-en/LICENSE','share/extensions/dict-en/dictionaries.xcu']
     removed=['share/gallery/sound.wav','share/template/sample.ott','program/python-core-3.12/lib/a.py',
-             'share/config/images_breeze.zip','program/resource/fr/messages.mo']
+             'share/config/images_breeze.zip','program/resource/fr/messages.mo','LibreOffice.msi',
+             'share/extensions/dict-en/en_US.dic','share/extensions/dict-en/en_US.aff',
+             'share/extensions/dict-de/th_de_DE_v2.dat','share/extensions/dict-de/th_de_DE_v2.idx']
     for name in kept+removed:
         path=tmp_path/name
         path.parent.mkdir(parents=True,exist_ok=True)
