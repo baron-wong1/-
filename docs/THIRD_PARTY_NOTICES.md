@@ -5,7 +5,7 @@
 | 当前发行组件 | 用途 | 许可 |
 | --- | --- | --- |
 | PDFsharp-GDI 6.2.3 | 保留原 PDF 内容并生成打印布局 | MIT |
-| PdfPig 0.1.13 | 提取 PDF 文字 | Apache-2.0 |
+| PdfPig 0.1.16 | 提取 PDF 文字 | Apache-2.0 |
 | Microsoft.Extensions.*、Microsoft.Bcl.*、System.* 托管支持库 | PDF 库的小型依赖 | MIT |
 
 `licenses/components.json` 列出实际发行的 NuGet 包、版本、版权、作者和项目地址；完整 MIT、Apache-2.0 和应用许可随包提供。系统 .NET Framework、Windows PDF/OCR 和用户已安装的 Office 不在发行包中重新分发，依照用户已有的系统及软件许可使用。

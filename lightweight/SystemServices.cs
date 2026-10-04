@@ -83,6 +83,43 @@ namespace InvoiceAssistant
                 return string.Join("\n", words.OrderByDescending(w => w.BoundingBox.Top).ThenBy(w => w.BoundingBox.Left).Select(w => w.Text));
             }
         }
+        public static void NormalizePdf(string path, CancellationToken token)
+        {
+            // XPdfForm's dimensions use the unrotated MediaBox. Normalize the visible
+            // page in the private cache so preview, crop and printing share coordinates.
+            var target = path + ".normalized";
+            using (var form = XPdfForm.FromFile(path))
+            {
+                bool needed = false;
+                for (int index = 1; index <= form.PageCount; index++)
+                {
+                    form.PageNumber = index; var p = form.Page;
+                    if (p.Rotate != 0 || p.MediaBoxReadOnly.X1 != 0 || p.MediaBoxReadOnly.Y1 != 0 || p.HasCropBox && p.CropBoxReadOnly != p.MediaBoxReadOnly) needed = true;
+                }
+                if (!needed) return;
+                using (var output = new PdfDocument())
+                {
+                    for (int index = 1; index <= form.PageCount; index++)
+                    {
+                        token.ThrowIfCancellationRequested(); form.PageNumber = index;
+                        var source = form.Page; var media = source.MediaBoxReadOnly; var crop = source.EffectiveCropBoxReadOnly;
+                        int rotation = (source.Rotate % 360 + 360) % 360; source.Rotate = 0;
+                        double w = crop.Width, h = crop.Height;
+                        var page = output.AddPage(); page.Width = XUnit.FromPoint(rotation == 90 || rotation == 270 ? h : w); page.Height = XUnit.FromPoint(rotation == 90 || rotation == 270 ? w : h);
+                        using (var graphics = XGraphics.FromPdfPage(page))
+                        {
+                            graphics.IntersectClip(new XRect(0, 0, page.Width.Point, page.Height.Point));
+                            if (rotation == 90) { graphics.TranslateTransform(h, 0); graphics.RotateTransform(90); }
+                            else if (rotation == 180) { graphics.TranslateTransform(w, h); graphics.RotateTransform(180); }
+                            else if (rotation == 270) { graphics.TranslateTransform(0, w); graphics.RotateTransform(270); }
+                            graphics.DrawImage(form, -(crop.X1 - media.X1), -(media.Y2 - crop.Y2), form.PointWidth, form.PointHeight);
+                        }
+                    }
+                    output.Save(target);
+                }
+            }
+            File.Copy(target, path, true); File.Delete(target);
+        }
         public static void ImagePdf(string image, string target)
         {
             using (var bitmap = new Bitmap(image))

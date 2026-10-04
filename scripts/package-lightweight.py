@@ -2,7 +2,9 @@
 from pathlib import Path
 import hashlib
 import json
+import os
 import shutil
+import subprocess
 import xml.etree.ElementTree as ET
 import zipfile
 
@@ -47,14 +49,15 @@ for package, info in assets['libraries'].items():
         raise RuntimeError('Review dependency license: ' + package + ' ' + license_text)
     components.append({'package': package, 'license': license_text, 'copyright': field('copyright'), 'authors': field('authors'), 'project': field('projectUrl')})
 (notices / 'components.json').write_text(json.dumps(components, ensure_ascii=False, indent=2), encoding='utf-8')
-(notices / 'SOURCE.txt').write_text('Source and build instructions: https://github.com/baron-wong1/-\nVersion: 0.2.0\nSystem .NET Framework, Windows OCR/PDF services and installed Office are not redistributed.\n', encoding='utf-8')
+commit = os.environ.get('GITHUB_SHA') or subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=root, text=True).strip()
+(notices / 'SOURCE.txt').write_text('Source and build instructions: https://github.com/baron-wong1/-/tree/' + commit + '\nVersion: 0.2.0\nSystem .NET Framework, Windows OCR/PDF services and installed Office are not redistributed.\n', encoding='utf-8')
 zip_path = release / 'InvoiceAssistant-0.2.0-Light-Windows-x64.zip'
 with zipfile.ZipFile(zip_path, 'w', compression=zipfile.ZIP_DEFLATED, compresslevel=9) as z:
     for path in sorted(target.rglob('*')):
         if path.is_file():
             z.write(path, path.relative_to(target))
 files = [{'name': str(p.relative_to(target)), 'bytes': p.stat().st_size} for p in sorted(target.rglob('*')) if p.is_file()]
-report = {'version': '0.2.0', 'zip_bytes': zip_path.stat().st_size, 'unpacked_bytes': sum(f['bytes'] for f in files), 'files': files}
+report = {'version': '0.2.0', 'source_commit': commit, 'zip_bytes': zip_path.stat().st_size, 'unpacked_bytes': sum(f['bytes'] for f in files), 'files': files}
 if report['zip_bytes'] > 10_000_000:
     raise RuntimeError('Lightweight ZIP exceeds 10 MB budget')
 (release / 'footprint.json').write_text(json.dumps(report, ensure_ascii=False, indent=2), encoding='utf-8')

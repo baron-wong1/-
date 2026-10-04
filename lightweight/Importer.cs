@@ -51,6 +51,7 @@ namespace InvoiceAssistant
                 if (ext == ".pdf") File.Copy(source, pdf, true);
                 else if (ext == ".doc" || ext == ".docx") { if (File.Exists(pdf)) File.Delete(pdf); await SystemServices.ConvertWord(source, pdf, token); }
                 else SystemServices.ImagePdf(source, pdf);
+                SystemServices.NormalizePdf(pdf, token);
                 if (Rules.Hash(path) != hash) throw new IOException("处理期间原文件发生变化，请重新导入");
                 int count; using (var document = PdfReader.Open(pdf, PdfDocumentOpenMode.Import)) count = document.PageCount;
                 var pdfHash = Rules.Hash(pdf);
