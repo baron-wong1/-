@@ -61,3 +61,16 @@ jobs:
           if-no-files-found: error
           retention-days: 30
           compression-level: 0
+      - name: Upload synthetic diagnostic files
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: InvoiceAssistant-Light-Verification
+          path: |
+            ${{ runner.temp }}/invoice-native-qa/*.txt
+            ${{ runner.temp }}/invoice-native-qa/*.png
+            ${{ runner.temp }}/invoice-native-qa/exports
+            ${{ runner.temp }}/invoice-native-qa/rotated-exports
+            ${{ runner.temp }}/invoice-native-qa/split-exports
+          if-no-files-found: ignore
+          retention-days: 7

@@ -130,7 +130,8 @@ namespace InvoiceAssistant
             using (var pdf = UglyToad.PdfPig.PdfDocument.Open(combined))
             {
                 var text = string.Join("\n", pdf.GetPages().Select(p => p.Text));
-                Check(text.Contains(invoice.Number) && text.Contains(longTicket.Number), "PDF source text remains vector and identifiers intact");
+                File.WriteAllText(Path.Combine(root, "output-text.txt"), text);
+                Check(text.Contains(invoice.Number) && text.Contains(longTicket.Number), "PDF source text remains vector and identifiers intact. Actual: " + text);
                 Check(text.Contains("1 / 2") && text.Contains("2 / 2"), "Continuous combined page numbering");
             }
             using (var zip = ZipFile.OpenRead(Directory.GetFiles(output, "*.xlsx").Single()))
