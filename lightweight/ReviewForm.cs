@@ -25,6 +25,7 @@ namespace InvoiceAssistant
         public ReviewForm(Ticket original)
         {
             row = original.Copy(); Text = "核对 · " + row.Filename; Font = new Font("Microsoft YaHei UI", 10); MinimumSize = new Size(850, 640); Size = new Size(1100, 800); StartPosition = FormStartPosition.CenterParent; BackColor = Color.White;
+            number.Name = "number"; date.Name = "date"; amount.Name = "amount"; confirmed.Name = "confirmed"; save.Name = "save";
             var layout = new TableLayoutPanel { Dock = DockStyle.Fill, Padding = new Padding(16), ColumnCount = 2 }; layout.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 330)); layout.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100));
             var fields = new FlowLayoutPanel { Dock = DockStyle.Fill, FlowDirection = FlowDirection.TopDown, WrapContents = false, AutoScroll = true, Padding = new Padding(0, 0, 12, 0) };
             kind.Items.AddRange(new[] { "发票", "付款附件（不计金额）" }); kind.SelectedIndex = row.Attachment ? 1 : 0;
@@ -87,6 +88,8 @@ namespace InvoiceAssistant
     public sealed class CropView : Control
     {
         Bitmap image; PointF? anchor;
+        internal bool HasImage => image != null;
+        internal RectangleF VisibleImageBounds => ImageBounds;
         public double[] Crop { get; set; }
         public event EventHandler Changed;
         public CropView() { DoubleBuffered = true; Cursor = Cursors.Cross; }

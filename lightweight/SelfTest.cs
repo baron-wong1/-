@@ -5,6 +5,7 @@ using System.Drawing.Imaging;
 using System.IO;
 using System.IO.Compression;
 using System.Linq;
+using System.Runtime.InteropServices;
 using System.Threading;
 using System.Threading.Tasks;
 using System.Windows.Forms;
@@ -19,6 +20,9 @@ namespace InvoiceAssistant
     internal static class SelfTest
     {
         static readonly List<string> checks = new List<string>();
+        [DllImport("user32.dll")] static extern IntPtr SendMessage(IntPtr handle, int message, IntPtr wparam, IntPtr lparam);
+        static Control Named(Control root, string name) => root.Controls.Cast<Control>().SelectMany(c => new[] { c }.Concat(Descendants(c))).First(c => c.Name == name);
+        static IEnumerable<Control> Descendants(Control root) => root.Controls.Cast<Control>().SelectMany(c => new[] { c }.Concat(Descendants(c)));
         static void Check(bool passed, string name) { if (!passed) throw new Exception("FAILED: " + name); checks.Add(name); }
         static void Reject(Action action, string name) { try { action(); } catch (ArgumentException) { checks.Add(name); return; } throw new Exception("FAILED: " + name); }
         public static int Run(string root)
@@ -56,6 +60,30 @@ namespace InvoiceAssistant
             var invoice = form.Current.Rows[0];
             Check(invoice.Number == "00123456789012345678" && invoice.Amount == "123.45" && invoice.Date == "2026-10-03" && invoice.Status == "就绪", "Text PDF import extracts actual invoice fields");
             using (var preview = await SystemServices.Render(invoice.Pdf, 1, token)) { Check(preview.Width == 1500 && preview.Height > 0, "Windows PDF preview without bundled renderer"); preview.Save(Path.Combine(root, "preview.png"), ImageFormat.Png); }
+            using (var dialog = new ReviewForm(invoice))
+            {
+                Exception dialogError = null;
+                dialog.Shown += async (_, __) =>
+                {
+                    try
+                    {
+                        for (int tries = 0; !dialog.Preview.HasImage && tries < 40; tries++) await Task.Delay(50);
+                        Check(dialog.Preview.HasImage, "Review window displays actual source preview");
+                        var area = dialog.Preview.VisibleImageBounds;
+                        int x1 = (int)(area.Left + area.Width * 0.01), y1 = (int)(area.Top + area.Height * 0.01), x2 = (int)(area.Left + area.Width * 0.99), y2 = (int)(area.Top + area.Height * 0.99);
+                        SendMessage(dialog.Preview.Handle, 0x201, new IntPtr(1), new IntPtr((y1 << 16) | x1));
+                        SendMessage(dialog.Preview.Handle, 0x200, new IntPtr(1), new IntPtr((y2 << 16) | x2));
+                        SendMessage(dialog.Preview.Handle, 0x202, IntPtr.Zero, new IntPtr((y2 << 16) | x2));
+                        Check(Rules.ValidCrop(dialog.Preview.Crop), "Native mouse drag creates valid crop");
+                        Named(dialog, "amount").Text = "123.40"; ((CheckBox)Named(dialog, "confirmed")).Checked = true;
+                        using (var image = new Bitmap(dialog.Width, dialog.Height)) { dialog.DrawToBitmap(image, new Rectangle(Point.Empty, dialog.Size)); image.Save(Path.Combine(root, "review.png"), ImageFormat.Png); }
+                        ((Button)Named(dialog, "save")).PerformClick();
+                    }
+                    catch (Exception ex) { dialogError = ex; dialog.Close(); }
+                };
+                var accepted = dialog.ShowDialog(form); if (dialogError != null) throw dialogError;
+                Check(accepted == DialogResult.OK && dialog.Result.Amount == "123.40" && dialog.Result.Reviewed && Rules.ValidCrop(dialog.Result.Crop), "Review confirmation saves manual edits and crop through actual controls");
+            }
             var importer = new Importer(Path.Combine(root, "cache"));
             var bad = await importer.Read(Path.Combine(root, "fixtures", "bad.pdf"), token); Check(bad.Single().Error != "", "Bad PDF isolated as visible error record");
             var images = await importer.Read(Path.Combine(root, "fixtures", "receipt.png"), token); Check(images.Single().Error == "" && File.Exists(images[0].Pdf), "PNG imports without OCR language pack");
@@ -64,6 +92,13 @@ namespace InvoiceAssistant
             var pages = await importer.Read(Path.Combine(root, "fixtures", "pages.pdf"), token); Check(pages.Count == 2 && pages.All(r => r.Pages == 2 && r.Warning.Contains("多页")), "Multi-page PDF retains independent review ranges");
             var rotated = await importer.Read(Path.Combine(root, "fixtures", "rotated.pdf"), token); Check(rotated.Single().Number == "00999999999999999999", "Rotated PDF text import");
             using (var preview = await SystemServices.Render(rotated[0].Pdf, 1, token)) Check(preview.Width > preview.Height, "System preview respects PDF rotation");
+            rotated[0].Reviewed = true;
+            var rotatedOutput = Exporter.Write(rotated, "旋转测试", "2026-10", Path.Combine(root, "rotated-exports"), token);
+            using (var preview = await SystemServices.Render(Directory.GetFiles(rotatedOutput, "*合并打印.pdf").Single(), 1, token)) { preview.Save(Path.Combine(root, "rotated-print.png"), ImageFormat.Png); Check(preview.Width > 0, "Rotated source exports through vector form and renders"); }
+            var top = many[0].Copy(); top.Number = "12345678"; top.Date = "2026-10-03"; top.Amount = "10.00"; top.Reviewed = true; top.Crop = new double[] { 0, 0, 1, 0.5 };
+            var bottom = top.Copy(); bottom.Id = Guid.NewGuid().ToString("N"); bottom.Number = "87654321"; bottom.Amount = "20.00"; bottom.Crop = new double[] { 0, 0.5, 1, 1 };
+            var splitOutput = Exporter.Write(new List<Ticket> { top, bottom }, "拆分测试", "2026-10", Path.Combine(root, "split-exports"), token);
+            using (var preview = await SystemServices.Render(Directory.GetFiles(splitOutput, "*合并打印.pdf").Single(), 1, token)) { preview.Save(Path.Combine(root, "split-print.png"), ImageFormat.Png); Check(preview.Width > 0, "Two disjoint crops export and render"); }
 
             var languages = OcrEngine.AvailableRecognizerLanguages;
             checks.Add("Installed system OCR languages: " + string.Join(",", languages.Select(l => l.LanguageTag)));

@@ -109,12 +109,16 @@ namespace InvoiceAssistant
                 foreach (var file in files)
                 {
                     operation.Token.ThrowIfCancellationRequested(); progress.Text = "正在读取 " + Path.GetFileName(file);
-                    var hash = await Task.Run(() => Rules.Hash(file), operation.Token);
+                    string hash;
+                    try { hash = await Task.Run(() => Rules.Hash(file), operation.Token); }
+                    catch (IOException ex) { Current.Rows.Add(new Ticket { Source = file, Error = "无法读取：" + ex.Message }); RefreshRows(); Save(); continue; }
+                    catch (UnauthorizedAccessException ex) { Current.Rows.Add(new Ticket { Source = file, Error = "无法读取：" + ex.Message }); RefreshRows(); Save(); continue; }
                     if (known.Contains(hash)) { duplicate++; continue; }
                     var rows = await Task.Run(() => importer.Read(file, operation.Token), operation.Token);
                     Current.Rows.AddRange(rows); known.Add(hash); added += rows.Count; RefreshRows(); Save();
                 }
                 progress.Text = added == 0 && duplicate == 0 ? "没有找到支持的票据文件" : "已加入 " + added + " 项，跳过 " + duplicate + " 个重复文件；双击行查看原件并核对";
+                if (importer.DiscoveryWarnings.Count > 0) MessageBox.Show(this, string.Join("\n", importer.DiscoveryWarnings), "部分文件夹无法读取", MessageBoxButtons.OK, MessageBoxIcon.Warning);
             }
             catch (OperationCanceledException) { progress.Text = "已取消；已完成的票据保留在列表"; }
             catch (Exception ex) { ShowError(ex); }

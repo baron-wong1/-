@@ -124,6 +124,7 @@ namespace InvoiceAssistant
                 catch (OperationCanceledException)
                 {
                     KillTree(process);
+                    KillOwnWord(target + ".pid", process.StartTime);
                     token.ThrowIfCancellationRequested();
                     throw new TimeoutException("Word 转换超过 120 秒，请先在 Office 中另存为 PDF");
                 }
@@ -135,6 +136,18 @@ namespace InvoiceAssistant
             if (p.HasExited) return;
             using (var kill = Process.Start(new ProcessStartInfo("taskkill.exe", "/PID " + p.Id + " /T /F") { UseShellExecute = false, CreateNoWindow = true })) kill.WaitForExit(5000);
         }
+        static void KillOwnWord(string marker, DateTime workerStart)
+        {
+            if (!File.Exists(marker) || !int.TryParse(File.ReadAllText(marker), out var id)) return;
+            try
+            {
+                using (var word = Process.GetProcessById(id))
+                    if (word.ProcessName.Equals("WINWORD", StringComparison.OrdinalIgnoreCase) && word.StartTime >= workerStart.AddSeconds(-1) && !word.HasExited) word.Kill();
+            }
+            catch (ArgumentException) { }
+            catch (InvalidOperationException) { }
+        }
+        [DllImport("user32.dll")] static extern uint GetWindowThreadProcessId(IntPtr window, out uint process);
         public static int WordWorker(string source, string target)
         {
             object appObject = null, docObject = null;
@@ -142,7 +155,10 @@ namespace InvoiceAssistant
             {
                 var type = Type.GetTypeFromProgID("Word.Application");
                 if (type == null) throw new InvalidOperationException("本机未安装 Microsoft Word，请先将 Word 文件转成 PDF 再导入");
+                var existing = Process.GetProcessesByName("WINWORD").Select(p => { using (p) return p.Id; }).ToHashSet();
                 appObject = Activator.CreateInstance(type); dynamic app = appObject;
+                GetWindowThreadProcessId(new IntPtr((int)app.Hwnd), out var wordPid);
+                if (wordPid != 0 && !existing.Contains((int)wordPid)) File.WriteAllText(target + ".pid", wordPid.ToString());
                 app.Visible = false; app.DisplayAlerts = 0; app.AutomationSecurity = 3;
                 docObject = app.Documents.Open(FileName: source, ConfirmConversions: false, ReadOnly: true, AddToRecentFiles: false, Visible: false, OpenAndRepair: false);
                 dynamic doc = docObject; doc.ExportAsFixedFormat(target, 17, OpenAfterExport: false);
@@ -153,6 +169,7 @@ namespace InvoiceAssistant
             {
                 if (docObject != null) { try { ((dynamic)docObject).Close(0); } catch { } Marshal.FinalReleaseComObject(docObject); }
                 if (appObject != null) { try { ((dynamic)appObject).Quit(0); } catch { } Marshal.FinalReleaseComObject(appObject); }
+                if (File.Exists(target + ".pid")) File.Delete(target + ".pid");
             }
         }
     }

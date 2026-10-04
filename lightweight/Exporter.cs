@@ -45,7 +45,10 @@ namespace InvoiceAssistant
                             int start = combined.PageCount;
                             using (var input = PdfReader.Open(temp, PdfDocumentOpenMode.Import)) foreach (var page in input.Pages) combined.AddPage(page);
                             combined.Outlines.Add(category, combined.Pages[start], true);
-                            AddNumbers(pdf); pdf.Save(Path.Combine(stage, prefix + "_" + (++index).ToString("D2") + "_" + Rules.SafeName(category) + ".pdf"));
+                            using (var numbered = PdfReader.Open(temp, PdfDocumentOpenMode.Modify))
+                            {
+                                AddNumbers(numbered); numbered.Save(Path.Combine(stage, prefix + "_" + (++index).ToString("D2") + "_" + Rules.SafeName(category) + ".pdf"));
+                            }
                             File.Delete(temp);
                         }
                     }

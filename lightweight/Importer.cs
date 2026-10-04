@@ -11,9 +11,11 @@ namespace InvoiceAssistant
     public sealed class Importer
     {
         public string Cache { get; }
+        public List<string> DiscoveryWarnings { get; } = new List<string>();
         public Importer(string cache) { Cache = cache; Directory.CreateDirectory(cache); }
         public IEnumerable<string> Discover(IEnumerable<string> inputs, IEnumerable<string> outputs, CancellationToken token)
         {
+            DiscoveryWarnings.Clear();
             var seen = new HashSet<string>(StringComparer.OrdinalIgnoreCase);
             var stack = new Stack<string>(inputs.Reverse());
             while (stack.Count > 0)
@@ -22,8 +24,13 @@ namespace InvoiceAssistant
                 if (!seen.Add(p) || Rules.Inside(p, AppDomain.CurrentDomain.BaseDirectory) || Rules.Inside(p, Cache) || outputs.Any(o => Rules.Inside(p, o))) continue;
                 if (Directory.Exists(p))
                 {
-                    if ((File.GetAttributes(p) & FileAttributes.ReparsePoint) != 0 || Path.GetFileName(p).StartsWith(".") || Path.GetFileName(p).StartsWith("发票整理_")) continue;
-                    foreach (var child in Directory.EnumerateFileSystemEntries(p).OrderByDescending(x => x)) stack.Push(child);
+                    try
+                    {
+                        if ((File.GetAttributes(p) & FileAttributes.ReparsePoint) != 0 || Path.GetFileName(p).StartsWith(".") || Path.GetFileName(p).StartsWith("发票整理_")) continue;
+                        foreach (var child in Directory.EnumerateFileSystemEntries(p).OrderByDescending(x => x)) stack.Push(child);
+                    }
+                    catch (IOException ex) { DiscoveryWarnings.Add(p + "：" + ex.Message); }
+                    catch (UnauthorizedAccessException ex) { DiscoveryWarnings.Add(p + "：" + ex.Message); }
                 }
                 else if (File.Exists(p) && Rules.Extensions.Contains(Path.GetExtension(p))) yield return p;
             }
