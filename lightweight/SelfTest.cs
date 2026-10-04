@@ -143,6 +143,7 @@ namespace InvoiceAssistant
                 Check(xml.Descendants(ns + "v").Any(x => x.Value == "133.55"), "Exact workbook total, attachment excluded");
             }
             Check(before.SequenceEqual(form.Current.Rows.Select(r => Rules.Hash(r.Source))), "Original bytes unchanged after all processing");
+            await Task.Delay(100);
             using (var screenshot = new Bitmap(form.Width, form.Height)) { form.DrawToBitmap(screenshot, new Rectangle(Point.Empty, form.Size)); screenshot.Save(Path.Combine(root, "desktop.png"), ImageFormat.Png); }
             var sessionPath = Path.Combine(root, "session-test.json");
             using (var stream = File.Create(sessionPath)) new System.Runtime.Serialization.Json.DataContractJsonSerializer(typeof(Session)).WriteObject(stream, form.Current);

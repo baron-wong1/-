@@ -82,7 +82,7 @@ namespace InvoiceAssistant
                 // PdfPig coordinates start at the bottom-left; the preview uses top-left.
                 var letters = p.Letters.Where(w =>
                 {
-                    var b = w.GlyphRectangle; double x = (b.Left + b.Right) / 2 / p.Width, y = 1 - (b.Bottom + b.Top) / 2 / p.Height;
+                    var b = w.BoundingBox; double x = (b.Left + b.Right) / 2 / p.Width, y = 1 - (b.Bottom + b.Top) / 2 / p.Height;
                     return x >= crop[0] && x <= crop[2] && y >= crop[1] && y <= crop[3];
                 });
                 return string.Concat(letters.Select(w => w.Value));

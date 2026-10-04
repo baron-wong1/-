@@ -50,7 +50,7 @@ namespace InvoiceAssistant
             var actions = Flow(); actions.Controls.AddRange(new Control[] { reviewButton, splitButton, removeButton, clearButton }); layout.Controls.Add(actions, 0, 4);
             layout.Controls.Add(progress, 0, 5);
             var bottom = new TableLayoutPanel { Dock = DockStyle.Fill, ColumnCount = 3 }; bottom.ColumnStyles.Add(new ColumnStyle(SizeType.Percent, 100)); bottom.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 82)); bottom.ColumnStyles.Add(new ColumnStyle(SizeType.Absolute, 245));
-            bottom.Controls.Add(summary, 0, 0); bottom.Controls.Add(cancelButton, 1, 0); bottom.Controls.Add(exportButton, 2, 0); exportButton.Dock = DockStyle.Fill; exportButton.BackColor = Color.FromArgb(37, 99, 181); exportButton.ForeColor = Color.White; exportButton.FlatStyle = FlatStyle.Flat; cancelButton.Visible = false;
+            bottom.Controls.Add(summary, 0, 0); bottom.Controls.Add(cancelButton, 1, 0); bottom.Controls.Add(exportButton, 2, 0); exportButton.Dock = DockStyle.Fill; exportButton.AutoSize = false; cancelButton.Visible = false;
             layout.Controls.Add(bottom, 0, 6); Controls.Add(layout);
             fileButton.Click += async (_, __) => { using (var dialog = new OpenFileDialog { Multiselect = true, Filter = "票据|*.pdf;*.jpg;*.jpeg;*.png;*.doc;*.docx", Title = "选择票据" }) if (dialog.ShowDialog(this) == DialogResult.OK) await ImportPaths(dialog.FileNames); };
             folderButton.Click += async (_, __) => { using (var dialog = new FolderBrowserDialog { Description = "选择包含票据的文件夹" }) if (dialog.ShowDialog(this) == DialogResult.OK) await ImportPaths(new[] { dialog.SelectedPath }); };
