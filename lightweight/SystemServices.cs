@@ -73,14 +73,19 @@ namespace InvoiceAssistant
             using (var pdf = Pig.Open(path))
             {
                 var p = pdf.GetPage(page);
-                if (crop == null) return ContentOrderTextExtractor.GetText(p);
-                // PdfPig coordinates start at the bottom-left; the preview uses top-left.
-                var words = p.GetWords().Where(w =>
+                if (crop == null)
                 {
-                    var b = w.BoundingBox; double x = (b.Left + b.Right) / 2 / p.Width, y = 1 - (b.Bottom + b.Top) / 2 / p.Height;
+                    // Sorting rotated glyphs by physical position can reverse a ticket number.
+                    bool rotated = p.Letters.Count(l => l.TextOrientation != UglyToad.PdfPig.Content.TextOrientation.Horizontal) > p.Letters.Count / 2;
+                    return rotated ? p.Text : ContentOrderTextExtractor.GetText(p);
+                }
+                // PdfPig coordinates start at the bottom-left; the preview uses top-left.
+                var letters = p.Letters.Where(w =>
+                {
+                    var b = w.GlyphRectangle; double x = (b.Left + b.Right) / 2 / p.Width, y = 1 - (b.Bottom + b.Top) / 2 / p.Height;
                     return x >= crop[0] && x <= crop[2] && y >= crop[1] && y <= crop[3];
                 });
-                return string.Join("\n", words.OrderByDescending(w => w.BoundingBox.Top).ThenBy(w => w.BoundingBox.Left).Select(w => w.Text));
+                return string.Concat(letters.Select(w => w.Value));
             }
         }
         public static void NormalizePdf(string path, CancellationToken token)

@@ -104,7 +104,7 @@ namespace InvoiceAssistant
                 }
             return active;
         }
-        public static IOrderedEnumerable<Ticket> Sort(IEnumerable<Ticket> rows) => rows.OrderBy(r => r.Date).ThenBy(r => r.Travel).ThenBy(r => r.Number, StringComparer.Ordinal).ThenBy(r => r.Id, StringComparer.Ordinal);
+        public static IOrderedEnumerable<Ticket> Sort(IEnumerable<Ticket> rows) => rows.OrderBy(r => string.IsNullOrEmpty(r.Date) ? "9999-12-31" : r.Date).ThenBy(r => r.Travel).ThenBy(r => r.Number, StringComparer.Ordinal).ThenBy(r => r.Id, StringComparer.Ordinal);
         public static string Hash(string path) { using (var f = File.OpenRead(path)) using (var sha = SHA256.Create()) return BitConverter.ToString(sha.ComputeHash(f)).Replace("-", ""); }
         public static void CheckSource(Ticket r)
         {

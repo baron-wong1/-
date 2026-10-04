@@ -90,7 +90,7 @@ namespace InvoiceAssistant
             var jpg = await importer.Read(Path.Combine(root, "fixtures", "receipt.jpg"), token); Check(jpg.Single().Error == "", "JPEG imports without bundled image runtime");
             var many = await importer.Read(Path.Combine(root, "fixtures", "multiple.pdf"), token); Check(many.Single().RequiresSplit, "Multiple invoices in one actual PDF require split");
             var pages = await importer.Read(Path.Combine(root, "fixtures", "pages.pdf"), token); Check(pages.Count == 2 && pages.All(r => r.Pages == 2 && r.Warning.Contains("多页")), "Multi-page PDF retains independent review ranges");
-            var rotated = await importer.Read(Path.Combine(root, "fixtures", "rotated.pdf"), token); Check(rotated.Single().Number == "00999999999999999999", "Rotated PDF text import");
+            var rotated = await importer.Read(Path.Combine(root, "fixtures", "rotated.pdf"), token); Check(rotated.Single().Number == "00999999999999999999", "Rotated PDF text import: " + rotated.Single().Number + " " + rotated.Single().Error + " " + rotated.Single().Warning);
             using (var preview = await SystemServices.Render(rotated[0].Pdf, 1, token)) Check(preview.Width > preview.Height, "System preview respects PDF rotation");
             rotated[0].Reviewed = true;
             var rotatedOutput = Exporter.Write(rotated, "旋转测试", "2026-10", Path.Combine(root, "rotated-exports"), token);
